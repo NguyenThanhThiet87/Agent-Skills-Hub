@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYNEXAN — Agent Skill Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-size: 18px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+    }
+    .skill-item.active {
+      background-color: #f1f5f9;
+      border-left-color: #0969da;
+    }
+    .dark .skill-item.active {
+      background-color: #1e293b;
+      border-left-color: #38bdf8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#0d1117] text-slate-900 dark:text-[#e6edf3] font-sans text-sm antialiased min-h-screen flex flex-col transition-colors duration-150">
+
+  <!-- TOP HEADER -->
+  <header class="h-14 border-b border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-4">
+      <!-- Logo & Brand -->
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="logo.png" alt="SYNEXAN" class="h-8 w-auto object-contain rounded p-0.5 border border-slate-200 dark:border-slate-700 bg-white shadow-sm" onerror="this.style.display='none'" />
+        <div class="flex flex-col">
+          <span class="font-semibold text-slate-900 dark:text-white tracking-tight leading-none text-base">SYNEXAN</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono leading-tight mt-0.5">Agent Skill Hub</span>
+        </div>
+      </a>
+
+      <!-- Storage & Health Status Badge -->
+      <div id="storage-badge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-400" title="System storage mode">
+        <span class="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+        <span id="storage-mode-text" class="font-medium">Connecting...</span>
+      </div>
+
+      <!-- MCP Server Status -->
+      <button onclick="openMcpModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors" title="Click to view MCP agent connection configuration">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+        <span class="font-medium">MCP: Active</span>
+      </button>
+    </div>
+
+    <!-- Search & Actions -->
+    <div class="flex items-center gap-3">
+      <!-- Search Input -->
+      <div class="relative hidden sm:flex items-center">
+        <span class="material-symbols-outlined absolute left-2.5 text-slate-400 dark:text-slate-500 text-sm">search</span>
+        <input 
+          id="search-input"
+          oninput="handleSearch(this.value)"
+          type="text" 
+          placeholder="Filter skills (⌘K)..." 
+          class="h-8 w-64 pl-8 pr-12 rounded-md bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-[#30363d] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 transition-colors"
+        />
+        <kbd class="absolute right-2 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800 px-1 rounded border border-slate-300 dark:border-slate-700">⌘K</kbd>
+      </div>
+
+      <!-- Upload Skill Button -->
+      <button onclick="openUploadModal()" class="h-8 px-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-sm">add</span>
+        <span>Upload skill</span>
+      </button>
+
+      <!-- Theme Toggle -->
+      <button onclick="toggleTheme()" id="theme-btn" class="h-8 w-8 rounded-md border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#21262d] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors" title="Toggle Light / Dark mode">
+        <span class="material-symbols-outlined text-[16px]" id="theme-icon">dark_mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- WORKSPACE BODY (MASTER-DETAIL WORKSTATION) -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- MASTER LIST (LEFT SIDEBAR) -->
+    <aside class="w-80 md:w-96 border-r border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] flex flex-col shrink-0">
+      
+      <!-- Category Tabs -->
+      <div class="px-3 py-2 border-b border-slate-200 dark:border-[#30363d] flex items-center gap-1 overflow-x-auto text-xs font-medium no-scrollbar">
+        <button onclick="filterCategory('All')" class="cat-pill active px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shrink-0">All (<span id="count-all">0</span>)</button>
+        <button onclick="filterCategory('Vision AI')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">Vision AI</button>
+        <button onclick="filterCategory('Training')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">Training</button>
+        <button onclick="filterCategory('RAG & LLM')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">RAG & LLM</button>
+        <button onclick="filterCategory('Fullstack')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">Fullstack</button>
+        <button onclick="filterCategory('DevOps')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">DevOps</button>
+        <button onclick="filterCategory('Security')" class="cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 shrink-0">Security</button>
+      </div>
+
+      <!-- Skill Items List -->
+      <div id="skills-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        <div class="p-8 text-center text-xs text-slate-400">Loading skills from server...</div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-3 border-t border-slate-200 dark:border-[#30363d] text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+        <span id="footer-storage-info" class="font-mono truncate max-w-[200px]">Checking backend...</span>
+        <button onclick="loadSkillsFromServer()" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+          <span class="material-symbols-outlined text-xs">refresh</span> Refresh
+        </button>
+      </div>
+    </aside>
+
+    <!-- DETAIL WORKSTATION (RIGHT MAIN CONTENT - THE CENTERPIECE) -->
+    <main class="flex-1 flex flex-col bg-slate-50 dark:bg-[#0d1117] overflow-hidden">
+      
+      <!-- Skill Detail Top Bar -->
+      <div class="h-14 border-b border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] px-6 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">description</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 id="detail-title" class="font-semibold text-slate-900 dark:text-white text-base">Select a skill</h1>
+              <span id="detail-category-badge" class="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900">-</span>
+              <span id="detail-trigger-badge" class="px-2 py-0.5 rounded text-[11px] font-mono text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">trigger: on_demand</span>
+            </div>
+            <p id="detail-desc" class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xl">-</p>
+          </div>
+        </div>
+
+        <!-- Detail Actions -->
+        <div class="flex items-center gap-2">
+          <button onclick="copyMcpToolCall()" class="h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-colors" title="Copy MCP Tool Calling Code">
+            <span class="material-symbols-outlined text-sm">content_copy</span>
+            <span>Copy MCP Call</span>
+          </button>
+          <button onclick="triggerDeleteCurrent()" class="h-8 px-3 rounded-md border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium flex items-center gap-1.5 transition-colors">
+            <span class="material-symbols-outlined text-sm">delete</span>
+            <span>Delete skill</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Content Area (Rendered Markdown) -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        <!-- YAML Frontmatter Parameters Card -->
+        <div class="rounded-lg border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+            <span class="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Frontmatter & Parameters Contract</span>
+            <span class="text-[11px] font-mono text-slate-400">Parsed by Agent Runtime</span>
+          </div>
+          <div id="parameters-container" class="space-y-2">
+            <span class="text-xs text-slate-400">No parameters specified.</span>
+          </div>
+        </div>
+
+        <!-- Main Markdown Runbook Section -->
+        <div class="rounded-lg border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-600">play_circle</span>
+              <span>Execution Runbook</span>
+            </h2>
+            <span id="runbook-file-tag" class="text-xs text-slate-400 font-mono">SKILL.md</span>
+          </div>
+
+          <!-- Runbook Content -->
+          <div id="runbook-body" class="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4">
+            <!-- Dynamic markdown body -->
+          </div>
+        </div>
+
+        <!-- MCP Integration Code Snippet Callout -->
+        <div class="rounded-lg border border-slate-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">How AI Agents Invoke This Skill</span>
+            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">Model Context Protocol 2024-11-05</span>
+          </div>
+          <pre class="bg-slate-900 text-slate-100 p-3 rounded-md font-mono text-xs overflow-x-auto leading-normal"><code id="mcp-code-preview">// Called by Antigravity, Cursor or Claude Code
+const skill = await mcp.callTool("get_skill", {
+  name: "skill-name"
+});
+console.log(skill.content);</code></pre>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- GITHUB-STYLE SAFE DELETION MODAL (Type to confirm) -->
+  <div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-xl bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] shadow-2xl overflow-hidden flex flex-col">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+        <div class="flex items-center gap-2 text-red-600 font-semibold text-sm">
+          <span class="material-symbols-outlined text-base">warning</span>
+          <span>Delete skill '<span id="modal-skill-name">skill-name</span>'</span>
+        </div>
+        <button onclick="closeDeleteModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        <div class="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-xs text-red-800 dark:text-red-300 space-y-1">
+          <p class="font-semibold">This action cannot be undone.</p>
+          <p class="text-slate-600 dark:text-slate-400 leading-normal">
+            The skill will be permanently deleted from database and decoupled from all Agent runtimes.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs text-slate-700 dark:text-slate-300">
+            To confirm deletion, type <code id="confirm-target-text" class="font-mono font-semibold text-red-600 dark:text-red-400 select-all">delete skill-name</code> in the box below:
+          </label>
+          <input 
+            id="delete-confirm-input"
+            oninput="handleDeleteInput(this.value)"
+            type="text" 
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Type exact confirmation string..."
+            class="w-full h-9 px-3 rounded-md bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-red-500 transition-colors"
+          />
+          <p id="delete-match-status" class="text-[11px] text-slate-400 font-mono">
+            Requires exact case-sensitive match to unlock button.
+          </p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-2">
+        <button onclick="closeDeleteModal()" class="h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300">Cancel</button>
+        <button id="final-delete-btn" disabled onclick="executeDeletion()" class="h-8 px-3 rounded-md bg-red-600 text-white text-xs font-medium opacity-40 cursor-not-allowed hover:bg-red-700 transition-colors flex items-center gap-1.5 shadow-sm">
+          <span class="material-symbols-outlined text-sm">delete_forever</span>
+          <span>I understand, delete this skill</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD SKILL MODAL -->
+  <div id="upload-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div class="w-full max-w-lg rounded-xl bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+        <div class="flex items-center gap-2 text-slate-900 dark:text-white font-semibold text-sm">
+          <span class="material-symbols-outlined text-blue-600">upload_file</span>
+          <span>Upload Skill to Database</span>
+        </div>
+        <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <form id="upload-form" onsubmit="submitNewSkill(event)" class="p-5 space-y-4">
+        <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer transition-colors" onclick="document.getElementById('upload-file-input').click()">
+          <span class="material-symbols-outlined text-3xl text-slate-400 mb-2">cloud_upload</span>
+          <p id="upload-dropzone-text" class="text-sm font-medium text-slate-800 dark:text-slate-200">Click or drag & drop .md file here</p>
+          <p class="text-xs text-slate-400 mt-1">Accepts any Markdown (.md) with or without YAML frontmatter</p>
+          <input type="file" id="upload-file-input" class="hidden" accept=".md,.markdown" onchange="handleFileSelected(event)" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Category (Optional override)</label>
+            <select id="new-category" class="w-full h-8 px-2 rounded-md bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-white">
+              <option value="">Auto-detect from frontmatter</option>
+              <option value="Coding">Coding</option>
+              <option value="DevOps">DevOps</option>
+              <option value="Security">Security</option>
+              <option value="Automation">Automation</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Trigger</label>
+            <select id="new-trigger" class="w-full h-8 px-2 rounded-md bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-white">
+              <option value="on_demand">on_demand</option>
+              <option value="always_on">always_on</option>
+            </select>
+          </div>
+        </div>
+        <div class="px-5 py-3 -mx-5 -mb-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-2">
+          <button type="button" onclick="closeUploadModal()" class="h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300">Cancel</button>
+          <button type="submit" id="upload-submit-btn" class="h-8 px-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">Save & Publish Skill</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MCP CONNECTION CONFIG MODAL -->
+  <div id="mcp-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div class="w-full max-w-xl rounded-xl bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+        <div class="flex items-center gap-2 text-slate-900 dark:text-white font-semibold text-sm">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span>Connect AI Agents (MCP Server Configuration)</span>
+        </div>
+        <button onclick="closeMcpModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-slate-600 dark:text-slate-400">
+          Add this entry into your agent's <code class="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-blue-400">mcp_config.json</code> to let Antigravity, Claude Code, Cursor, or Windsurf discover and read skills automatically from this database:
+        </p>
+        <div class="relative">
+          <pre class="bg-slate-900 text-slate-100 p-3.5 rounded-lg font-mono text-xs leading-relaxed overflow-x-auto"><code>{
+  "mcpServers": {
+    "agent-skill-hub": {
+      "command": "node",
+      "args": ["D:/AgentSkillHub/server/mcp/mcpBridge.js"],
+      "env": {
+        "SKILLS_DIR": "D:/AgentSkillHub/skills"
+      }
+    }
+  }
+}</code></pre>
+          <button onclick="copyMcpJson()" class="absolute top-2.5 right-2.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-mono border border-slate-700 transition-colors">Copy JSON</button>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-1">
+          <div class="font-semibold text-slate-800 dark:text-slate-200">Exposed MCP Tools:</div>
+          <div>• <code class="font-mono text-blue-600 dark:text-blue-400">list_skills(category?)</code>: Discovers skills and frontmatter from DB.</div>
+          <div>• <code class="font-mono text-blue-600 dark:text-blue-400">get_skill(name)</code>: Reads markdown runbook and parameters schema.</div>
+          <div>• <code class="font-mono text-blue-600 dark:text-blue-400">search_skills(query)</code>: Fuzzy matches skills by task intent.</div>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end">
+        <button onclick="closeMcpModal()" class="h-8 px-4 rounded-md bg-blue-600 text-white text-xs font-medium">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC (CONNECTED TO REST API) -->
+  <script>
+    let skillsList = [];
+    let currentSelectedSkill = null;
+    let currentCategoryFilter = "All";
+    let searchQuery = "";
+    let selectedFileForUpload = null;
+
+    async function loadSkillsFromServer() {
+      try {
+        const res = await fetch('/api/skills');
+        const data = await res.json();
+        if (data.success) {
+          skillsList = data.data || [];
+          document.getElementById('storage-mode-text').innerText = data.storageMode;
+          document.getElementById('footer-storage-info').innerText = `Storage: ${data.storageMode}`;
+          
+          if (data.storageMode === 'MongoDB') {
+            document.getElementById('storage-badge').className = "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400";
+          }
+
+          document.getElementById("count-all").innerText = skillsList.length;
+          
+          if (!currentSelectedSkill && skillsList.length > 0) {
+            currentSelectedSkill = skillsList[0];
+          } else if (currentSelectedSkill) {
+            const found = skillsList.find(s => s.name === currentSelectedSkill.name);
+            currentSelectedSkill = found || skillsList[0] || null;
+          }
+
+          renderSkillsList();
+          if (currentSelectedSkill) renderSkillDetail();
+        }
+      } catch (err) {
+        console.error('Failed to load skills from server:', err);
+        document.getElementById('skills-list').innerHTML = `
+          <div class="p-6 text-center text-xs text-red-500">
+            Cannot connect to backend server. Make sure node server/app.js is running.
+          </div>
+        `;
+      }
+    }
+
+    function renderSkillsList() {
+      const container = document.getElementById("skills-list");
+      container.innerHTML = "";
+
+      const filtered = skillsList.filter(skill => {
+        const matchesCat = currentCategoryFilter === "All" || skill.category.toLowerCase() === currentCategoryFilter.toLowerCase();
+        const matchesSearch = !searchQuery || 
+          skill.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          (skill.description && skill.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesCat && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-xs text-slate-400">
+            No skills match "${searchQuery || currentCategoryFilter}".
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(skill => {
+        const isActive = currentSelectedSkill && skill.name === currentSelectedSkill.name;
+        const el = document.createElement("div");
+        el.className = `skill-item p-3.5 cursor-pointer border-l-2 transition-all ${
+          isActive 
+            ? "active bg-slate-100 dark:bg-slate-800/80 border-blue-600 dark:border-sky-400" 
+            : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40"
+        }`;
+        el.onclick = () => selectSkill(skill.name);
+        el.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-mono font-medium text-xs text-slate-900 dark:text-white truncate">${skill.filename || skill.name + '.md'}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${
+              skill.category === 'DevOps' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+              skill.category === 'Coding' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+              skill.category === 'Security' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' :
+              'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+            }">${skill.category}</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${skill.description || 'No description provided'}</p>
+          <div class="mt-2 flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span>trigger: ${skill.trigger}</span>
+            <span>${skill.stats?.invocations || 0} calls</span>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    function selectSkill(name) {
+      const found = skillsList.find(s => s.name === name);
+      if (found) {
+        currentSelectedSkill = found;
+        renderSkillsList();
+        renderSkillDetail();
+      }
+    }
+
+    function renderSkillDetail() {
+      const skill = currentSelectedSkill;
+      if (!skill) return;
+
+      document.getElementById("detail-title").innerText = skill.filename || `${skill.name}.md`;
+      document.getElementById("detail-desc").innerText = skill.description || 'Automated agent runbook';
+      document.getElementById("detail-category-badge").innerText = skill.category;
+      document.getElementById("detail-trigger-badge").innerText = `trigger: ${skill.trigger}`;
+      document.getElementById("runbook-file-tag").innerText = skill.filename || `${skill.name}.md`;
+
+      // Parameters
+      const paramContainer = document.getElementById("parameters-container");
+      if (skill.parameters && skill.parameters.length > 0) {
+        paramContainer.innerHTML = skill.parameters.map(p => `
+          <div class="flex items-start justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-none">
+            <div class="space-y-0.5">
+              <span class="font-mono font-medium text-blue-600 dark:text-sky-400">${p.name}</span>
+              <span class="text-[11px] text-slate-400 font-mono">(${p.type})</span>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">${p.description || ''}</p>
+            </div>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">default: ${p.defaultValue || 'none'}</span>
+          </div>
+        `).join("");
+      } else {
+        paramContainer.innerHTML = `<span class="text-xs text-slate-400">No runtime parameters required.</span>`;
+      }
+
+      // Runbook rendering
+      const markdownBody = skill.rawMarkdown || skill.content || '';
+      // Escape HTML and format codeblocks/headers
+      let formattedHtml = markdownBody
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/^### (.*$)/gim, '<h4 class="font-semibold text-sm text-slate-900 dark:text-white mt-3">$1</h4>')
+        .replace(/^## (.*$)/gim, '<h3 class="font-semibold text-base text-slate-900 dark:text-white mt-4 border-b border-slate-100 dark:border-slate-800 pb-1">$1</h3>')
+        .replace(/^# (.*$)/gim, '<h2 class="font-bold text-lg text-slate-900 dark:text-white mt-4">$1</h2>')
+        .replace(/```([a-zA-Z]*)\n([\s\S]*?)```/gim, '<pre class="bg-slate-900 text-slate-100 p-3 rounded-md font-mono text-xs my-2 overflow-x-auto leading-relaxed"><code>$2</code></pre>')
+        .replace(/`([^`]+)`/gim, '<code class="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-sky-400 text-xs">$1</code>')
+        .replace(/\n\n/gim, '<p class="my-2"></p>');
+
+      document.getElementById("runbook-body").innerHTML = formattedHtml;
+
+      // MCP preview snippet
+      document.getElementById("mcp-code-preview").innerText = `// Called by Antigravity, Cursor or Claude Code
+const skill = await mcp.callTool("get_skill", {
+  name: "${skill.name}"
+});
+console.log(skill.content);`;
+    }
+
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll(".cat-pill").forEach(btn => {
+        if (btn.innerText.startsWith(cat)) {
+          btn.className = "cat-pill px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-medium";
+        } else {
+          btn.className = "cat-pill px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50";
+        }
+      });
+      renderSkillsList();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val;
+      renderSkillsList();
+    }
+
+    // Modal Handlers
+    function triggerDeleteCurrent() {
+      if (!currentSelectedSkill) return;
+      const skill = currentSelectedSkill;
+      document.getElementById("modal-skill-name").innerText = skill.name;
+      const targetString = `delete ${skill.name}`;
+      document.getElementById("confirm-target-text").innerText = targetString;
+      document.getElementById("delete-confirm-input").value = "";
+      handleDeleteInput("");
+      document.getElementById("delete-modal").classList.remove("hidden");
+    }
+
+    function closeDeleteModal() {
+      document.getElementById("delete-modal").classList.add("hidden");
+    }
+
+    function handleDeleteInput(val) {
+      if (!currentSelectedSkill) return;
+      const targetString = `delete ${currentSelectedSkill.name}`;
+      const btn = document.getElementById("final-delete-btn");
+      const status = document.getElementById("delete-match-status");
+
+      if (val === targetString) {
+        btn.disabled = false;
+        btn.classList.remove("opacity-40", "cursor-not-allowed");
+        status.innerText = "✓ Exact match confirmed. Click button to permanently delete.";
+        status.className = "text-[11px] text-red-600 dark:text-red-400 font-mono font-medium";
+      } else {
+        btn.disabled = true;
+        btn.classList.add("opacity-40", "cursor-not-allowed");
+        status.innerText = `Matched ${Math.min(val.length, targetString.length)}/${targetString.length} characters (case-sensitive).`;
+        status.className = "text-[11px] text-slate-400 font-mono";
+      }
+    }
+
+    async function executeDeletion() {
+      if (!currentSelectedSkill) return;
+      const skillName = currentSelectedSkill.name;
+      const confirmation = document.getElementById("delete-confirm-input").value;
+
+      try {
+        const res = await fetch(`/api/skills/${encodeURIComponent(skillName)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmation })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeDeleteModal();
+          await loadSkillsFromServer();
+          alert(`Skill '${skillName}' has been permanently deleted from database.`);
+        } else {
+          alert('Delete error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Failed to delete skill: ' + err.message);
+      }
+    }
+
+    function openMcpModal() {
+      document.getElementById("mcp-modal").classList.remove("hidden");
+    }
+    function closeMcpModal() {
+      document.getElementById("mcp-modal").classList.add("hidden");
+    }
+    function copyMcpJson() {
+      navigator.clipboard.writeText(`{\n  "mcpServers": {\n    "agent-skill-hub": {\n      "command": "node",\n      "args": ["D:/AgentSkillHub/server/mcp/mcpBridge.js"],\n      "env": {\n        "SKILLS_DIR": "D:/AgentSkillHub/skills"\n      }\n    }\n  }\n}`);
+      alert("MCP Server JSON configuration copied to clipboard!");
+    }
+    function copyMcpToolCall() {
+      if (!currentSelectedSkill) return;
+      navigator.clipboard.writeText(`await mcp.callTool("get_skill", { name: "${currentSelectedSkill.name}" });`);
+      alert(`Copied MCP tool call for '${currentSelectedSkill.name}'!`);
+    }
+
+    function openUploadModal() {
+      selectedFileForUpload = null;
+      document.getElementById("upload-dropzone-text").innerText = "Click or drag & drop .md file here";
+      document.getElementById("upload-file-input").value = "";
+      document.getElementById("upload-modal").classList.remove("hidden");
+    }
+    function closeUploadModal() {
+      document.getElementById("upload-modal").classList.add("hidden");
+    }
+    function handleFileSelected(e) {
+      if (e.target.files && e.target.files[0]) {
+        selectedFileForUpload = e.target.files[0];
+        document.getElementById("upload-dropzone-text").innerText = `Selected: ${selectedFileForUpload.name} (${Math.round(selectedFileForUpload.size / 1024)} KB)`;
+      }
+    }
+
+    async function submitNewSkill(e) {
+      e.preventDefault();
+      if (!selectedFileForUpload) {
+        alert("Please select a .md file to upload.");
+        return;
+      }
+
+      const submitBtn = document.getElementById("upload-submit-btn");
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Saving to database...";
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFileForUpload);
+        const cat = document.getElementById('new-category').value;
+        const trigger = document.getElementById('new-trigger').value;
+        if (cat) formData.append('category', cat);
+        if (trigger) formData.append('trigger', trigger);
+
+        const res = await fetch('/api/skills/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          closeUploadModal();
+          await loadSkillsFromServer();
+          selectSkill(data.data.name);
+          alert(`Skill '${data.data.name}' has been successfully saved to database!`);
+        } else {
+          alert("Upload error: " + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert("Upload failed: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Save & Publish Skill";
+      }
+    }
+
+    // Theme Management
+    function initTheme() {
+      const saved = localStorage.getItem("skillhub-theme") || "light";
+      applyTheme(saved);
+    }
+    function applyTheme(theme) {
+      const html = document.documentElement;
+      const icon = document.getElementById("theme-icon");
+      if (theme === "dark") {
+        html.classList.remove("light");
+        html.classList.add("dark");
+        if (icon) icon.innerText = "light_mode";
+        localStorage.setItem("skillhub-theme", "dark");
+      } else {
+        html.classList.remove("dark");
+        html.classList.add("light");
+        if (icon) icon.innerText = "dark_mode";
+        localStorage.setItem("skillhub-theme", "light");
+      }
+    }
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.contains("dark");
+      applyTheme(isDark ? "light" : "dark");
+    }
+
+    // Keyboard shortcut (Cmd+K / Ctrl+K)
+    window.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        const searchInput = document.getElementById("search-input");
+        if (searchInput) searchInput.focus();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initTheme();
+      loadSkillsFromServer();
+    });
+  </script>
+</body>
+</html>
